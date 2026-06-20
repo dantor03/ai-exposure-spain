@@ -1,176 +1,208 @@
 # AI Exposure of the Spanish Labour Market
 
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-reproducible-brightgreen.svg)
+
 **Who is most exposed to generative AI in Spain — and does the US "high-skill-biased"
-pattern hold in a services- and tourism-weighted economy?**
+pattern survive in a more services- and tourism-weighted economy?**
 
-This project (1) carries the established US occupational AI-exposure scores
-(Eloundou et al., *GPTs are GPTs*, Science 2024) onto Spanish occupations via an
-auditable SOC → ISCO-08 → CNO-2011 crosswalk, and (2) introduces a *validated
-LLM-as-annotator* method that scores exposure directly on the European ESCO
-taxonomy using Claude, benchmarked against the crosswalked human scores.
+This repository carries the established US occupational AI-exposure scores
+(Eloundou et al., *GPTs are GPTs*, **Science 2024**) onto Spanish occupations through
+an auditable classification crosswalk, then combines them with two Spanish official
+microdata sources — the labour-force survey (EPA) and the structure-of-earnings
+survey (EES) — to ask **who is exposed, and how exposure relates to pay**.
 
-> **Status:** runs end-to-end. **US baseline** reproduces from auto-fetched data;
-> **Spain result** runs from INE microdata in `data/raw/` (EPA + EES 2022). Both
-> produce real figures and numbers. Granularity is capped at occupation major
-> groups by Spanish public microdata — see the Spain caveat below.
+Everything is reproducible: the US benchmark runs from auto-downloaded data, and the
+Spanish analysis runs from two INE microdata files you place in `data/raw/`.
 
-### Reproducible right now (US baseline, no manual data)
+---
 
-```bash
-pip install -r requirements.txt
-python -m scripts.download_data        # auto-fetches Eloundou scores + OEWS
-python -m scripts.run_us_baseline      # -> figures/wage_vs_exposure_US.png
-```
+## Key findings
 
-Output (Eloundou human-β exposure × BLS OEWS May-2021, 767 detailed occupations,
-130.6M workers):
+| | 🇺🇸 United States | 🇪🇸 Spain |
+|---|---|---|
+| Employment-weighted **mean exposure** | 0.32 | **0.29** |
+| **Wage–exposure gradient** (∂exposure/∂log-wage) | +0.18 (p≈5e-11) | +0.24 (p≈0.002) |
+| Most exposed | Cognitive / white-collar occupations | Clerical, professionals, managers, technicians |
+| Least exposed | Manual / physical occupations | Craft, machine operators, agriculture, elementary |
 
-| metric | value |
+**Spain mirrors the US high-skill-biased pattern**: AI exposure rises with
+occupational pay. The most exposed Spanish workers are in clerical and professional
+roles; the least exposed are in manual trades. At the worker level (240k EES
+records), occupations with higher exposure pay a substantial wage premium even after
+controlling for sex, education, sector and job type.
+
+| 🇺🇸 US baseline | 🇪🇸 Spain |
 |---|---|
-| Employment-weighted mean exposure | 0.32 |
-| Share of US employment ≥0.5 exposure | **24.0%** |
-| Wage–exposure gradient (∂exposure/∂log-wage) | **+0.18** (p≈5e-11) |
+| ![US](figures/wage_vs_exposure_US.png) | ![Spain](figures/wage_vs_exposure_ES.png) |
 
-i.e. AI exposure rises with wages in the US — the benchmark the Spanish results
-are tested against.
-
-### Spain result (needs the INE microdata in `data/raw/`)
-
-```bash
-python -m scripts.run_spain                # -> figures/wage_vs_exposure_ES.png
-```
-
-Exposure crosswalked SOC-2018 → SOC-2010 → ISCO-08 → CNO-2011, aggregated to CNO
-1-digit; employment from EPA 2026Q1; wages (median, dispersion) from EES-2022
-microdata.
-
-| Occupation group | Employment | Exposure | Median wage | p90/p10 |
-|---|---:|---:|---:|---:|
-| Clerical | 9.5% | **0.47** | €20.8k | 4.5 |
-| Professionals | 20.8% | 0.44 | €35.5k | 5.4 |
-| Managers | 4.2% | 0.42 | €50.9k | 4.0 |
-| Technicians | 12.2% | 0.34 | €26.9k | 5.6 |
-| Services & sales | 20.7% | 0.29 | €15.7k | 5.8 |
-| Elementary / Craft / Operators / Agric. | ~32% | 0.09–0.11 | €14–21k | — |
-
-- Employment-weighted **mean exposure: 0.29** (US: 0.32).
-- **Wage–exposure gradient (group level, n=10): +0.24 (p≈0.002)** — Spain shows the
-  same high-skill-biased exposure as the US.
-- Worker-level (240k records) conditional wage premium of exposure is large and
-  positive controlling for sex/education/sector/job-type. *Reported as a
-  descriptive association only:* exposure varies across just 10 occupation groups,
-  so model standard errors are optimistic (effective clusters ≈ 10) and the
-  headline "share of workers highly exposed" is **not** identified at this
-  granularity (it degenerates to ~0 because broad-group means wash out highly
-  exposed detailed jobs). Both need 2-digit occupation — an INE custom-file request.
+> **Honest caveat.** Spain's *public* microdata anonymises occupation to **major
+> groups** (10 in EPA, 17 in EES). The exposure–wage *gradient* is robust to this,
+> but a fine "share of workers highly exposed" headline is **not identified** at this
+> resolution and is deliberately not reported. True 2-digit occupation (~65 groups)
+> requires an INE custom-file (*fichero a medida*) request — see [Roadmap](#roadmap).
 
 ---
 
-## Abstract
+## How it works
 
-> We carry US occupational AI-exposure scores (Eloundou et al., 2024) onto Spanish
-> occupations and combine them with INE labour-force (EPA, 22.3M workers) and
-> structure-of-earnings microdata (EES 2022, 240k workers). Spain mirrors the US
-> **high-skill-biased** pattern: cognitive white-collar groups (clerical,
-> professionals, managers, technicians) are most exposed, manual trades least, and
-> exposure rises with occupational pay (employment-weighted mean exposure **0.29**
-> vs. 0.32 in the US). At the worker level, a one-unit rise in occupational exposure
-> is associated with a large conditional wage premium, controlling for sex,
-> education, sector and job type. **Caveat:** Spanish *public* microdata anonymises
-> occupation to major groups (10–17), so the exposure resolution — and the
-> precision of any single-occupation claim — is limited; finer (2-digit) work needs
-> an INE custom-file request.
+Exposure is defined at US SOC; Spanish data is coded in CNO-2011. The bridge is a
+four-hop, fully auditable crosswalk, with coverage checked at every step:
 
-## Two headline figures _(generated into `figures/`)_
+```
+Eloundou exposure (US SOC-2018)
+        │  BLS 2010↔2018 SOC
+        ▼
+   SOC-2010
+        │  eworx iscoCrosswalks (SOC-2010 ↔ ISCO-08)
+        ▼
+   ISCO-08
+        │  INE "CNO-11 ↔ CIUO-08" correspondence
+        ▼
+   CNO-2011  ──aggregate──▶  CNO major group
+                                   │
+        ┌──────────────────────────┼──────────────────────────┐
+        ▼                                                       ▼
+  EPA 2026Q1                                              EES 2022 microdata
+  employment by occupation                          individual gross earnings
+  (22.3M workers)                                   (240k workers; median, P90/P10)
+```
 
-1. `figures/wage_vs_exposure.png` — scatter of occupational AI exposure vs. mean
-   wage, bubble-sized by employment. **The money chart.**
-2. `figures/exposure_by_sector.png` — exposure distribution across major CNO groups.
+Each hop is a many-to-many correspondence collapsed by an (optionally weighted) mean,
+implemented and unit-tested in [`src/crosswalk.py`](src/crosswalk.py).
 
 ---
-
-## Method
-
-```
-US SOC-2018  ──(BLS SOC↔ISCO)──▶  ISCO-08  ──(INE ISCO↔CNO)──▶  CNO-2011 (Spain)
-   │ Eloundou exposure scores                                        │
-   └────────────────────────────────────────────────────────────────┘
-                              merge with EPA employment + EES wages
-                                          │
-              ┌───────────────────────────┴───────────────────────────┐
-        Baseline (crosswalk)                          Extension (Claude on ESCO)
-   defensible, anchored on human                validate LLM scores vs. crosswalk
-   ratings → Spanish exposure map               (Spearman / Pearson at ISCO-4)
-```
-
-Each crosswalk hop is a many-to-many correspondence collapsed by an
-(optionally employment-weighted) mean — implemented and unit-tested in
-[`src/crosswalk.py`](src/crosswalk.py).
-
-## Repository layout
-
-```
-data/
-  raw/         INE EPA microdata, structure-of-earnings   (git-ignored)
-  external/    Eloundou scores, BLS/INE crosswalks, ESCO   (git-ignored)
-  processed/   cleaned, crosswalked panels                 (git-ignored)
-src/
-  config.py        paths, classification levels, model ids
-  crosswalk.py     SOC → ISCO → CNO mapping (unit-tested)
-  data_loading.py  loaders for every source, normalised columns
-  exposure.py      build occupation panel + wage–exposure regression
-  llm_scoring.py   Claude-on-ESCO scoring + validation against crosswalk
-scripts/
-  download_data.py documents & fetches all sources
-notebooks/
-  01_data_crosswalk.ipynb     SOC → CNO mapping, coverage checks
-  02_eda_and_exposure.ipynb   descriptives + the two headline figures
-  03_econometric_models.ipynb wage–exposure gradient, robustness
-tests/               pytest for the crosswalk logic
-figures/             tracked output charts (kept small)
-```
 
 ## Reproduce
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# 1. Fetch sources (mostly manual — follow the printed instructions)
-python -m scripts.download_data
-
-# 2. Sanity-check the crosswalk logic
-pytest -q
-
-# 3. Run the analysis
-jupyter lab   # run notebooks 01 → 02 → 03
-
-# (optional) 4. Claude-on-ESCO scoring extension
-export ANTHROPIC_API_KEY=sk-...
-python -c "from src.llm_scoring import score_esco; ..."   # see notebook 02
 ```
+
+**US baseline — runs immediately (data auto-fetched):**
+
+```bash
+python -m scripts.download_data     # fetches Eloundou scores + BLS OEWS + crosswalks
+python -m scripts.run_us_baseline   # -> figures/wage_vs_exposure_US.png
+```
+
+**Spain — needs two INE microdata files in `data/raw/`** (see
+[`scripts/download_data.py`](scripts/download_data.py) for exact sources):
+
+```
+data/raw/EPA_2026T1.sav     # INE Labour Force Survey microdata (any quarter)
+data/raw/EES_2022.sav       # INE Structure of Earnings Survey 2022 microdata
+```
+
+```bash
+python -m scripts.run_spain         # -> figures/wage_vs_exposure_ES.png
+```
+
+**Tests** (crosswalk logic): `pytest -q` (or run `python -m src.crosswalk` for a
+smoke test on toy data).
+
+---
+
+## Results in detail
+
+### US baseline
+Eloundou human-β exposure × BLS OEWS (May 2021); 767 detailed occupations, 130.6M
+workers.
+
+| metric | value |
+|---|---|
+| Employment-weighted mean exposure | 0.32 |
+| Share of US employment ≥0.5 exposure | 24.0% |
+| Wage–exposure gradient | +0.18 (p≈5e-11) |
+
+### Spain (1-digit CNO)
+Exposure crosswalked to CNO; employment from EPA 2026Q1; wages from EES-2022 microdata.
+
+| Occupation group | Employment | Exposure | Median wage | P90/P10 |
+|---|---:|---:|---:|---:|
+| Clerical | 9.5% | **0.47** | €20.8k | 4.5 |
+| Professionals | 20.8% | 0.44 | €35.5k | 5.4 |
+| Managers | 4.2% | 0.42 | €50.9k | 4.0 |
+| Technicians | 12.2% | 0.34 | €26.9k | 5.6 |
+| Services & sales | 20.7% | 0.29 | €15.7k | 5.8 |
+| Elementary / Craft / Operators / Agriculture | ~32% | 0.09–0.11 | €14–21k | — |
+
+- **Group-level wage–exposure gradient (n=10): +0.24 (p≈0.002).**
+- **Worker-level (240k records):** occupations with higher exposure pay a large
+  conditional wage premium, controlling for sex / education / sector / job type.
+  *Reported as a descriptive association only* — exposure varies across just 10
+  occupation groups, so standard errors are optimistic (effective clusters ≈ 10).
+
+---
 
 ## Data sources
 
-| Input | Source |
-|---|---|
-| AI exposure scores (US SOC) | Eloundou et al., *GPTs are GPTs*, **Science 2024** |
-| SOC ↔ ISCO-08 | US BLS crosswalk |
-| ISCO-08 ↔ CNO-2011 | INE clasificaciones |
-| Employment by occupation | INE — Encuesta de Población Activa (EPA) microdata |
-| Wages by occupation | INE — Encuesta de Estructura Salarial |
-| EU occupations + tasks | ESCO (European Commission) |
+| Input | Source | Access |
+|---|---|---|
+| AI exposure scores (US SOC) | Eloundou et al., *GPTs are GPTs* (Science 2024) | [openai/GPTs-are-GPTs](https://github.com/openai/GPTs-are-GPTs) — auto |
+| US employment & wages | BLS OEWS (national, May 2021) | via OpenAI repo — auto |
+| SOC-2010 ↔ SOC-2018 | US BLS | auto |
+| SOC-2010 ↔ ISCO-08 | [eworx-org/iscoCrosswalks](https://github.com/eworx-org/iscoCrosswalks) | auto |
+| ISCO-08 ↔ CNO-2011 | INE clasificaciones ("CNO-11 con CIUO-08") | manual |
+| Employment by occupation | INE — Encuesta de Población Activa (EPA) microdata | manual |
+| Wages by occupation | INE — Encuesta de Estructura Salarial (EES) 2022 microdata | manual |
 
-Exact links and download notes: [`scripts/download_data.py`](scripts/download_data.py).
+All raw data is `.gitignore`d; the repo ships only code and the output figures.
+
+---
+
+## Repository layout
+
+```
+src/
+  config.py        paths, classification levels, model ids
+  crosswalk.py     SOC → ISCO → CNO mapping  (unit-tested)
+  data_loading.py  loaders for every source, normalised columns
+  exposure.py      occupation-panel construction + wage–exposure regression
+  llm_scoring.py   Claude-on-ESCO scoring + validation  (roadmap; see below)
+scripts/
+  download_data.py        documents & auto-fetches all stable sources
+  run_us_baseline.py      US benchmark, end-to-end
+  run_spain.py            Spanish crosswalk + EPA/EES analysis, end-to-end
+notebooks/         exploratory crosswalk / EDA / model notebooks
+tests/             pytest for the crosswalk logic
+figures/           output charts (tracked)
+```
+
+---
+
+## Roadmap
+
+- **2-digit occupation.** Request the INE *fichero a medida* to obtain occupation at
+  CNO 2-digit (~65 groups), which would identify the "share of employment highly
+  exposed" headline and support a proper occupation-level regression.
+- **Claude-as-annotator (methodological extension).** Score AI exposure directly on
+  the European **ESCO** taxonomy with Claude using the Eloundou rubric, then validate
+  against the crosswalked human scores (rank/level agreement). Scaffolded in
+  [`src/llm_scoring.py`](src/llm_scoring.py); not yet run. This would remove the
+  US-classification detour entirely and produce ISCO-native exposure scores.
+- **Temporal layer.** Use EPA 2024Q1 vs. 2026Q1 to look at employment shifts across
+  the ChatGPT-diffusion window.
+
+---
 
 ## Limitations
 
-- Crosswalks are many-to-many; aggregation introduces measurement error we
-  quantify via coverage diagnostics at each hop.
-- "Exposure" measures *technical potential*, not realised adoption or labour
-  demand — it is an upper bound on disruption, not a forecast.
-- LLM-rated scores are validated against, not a replacement for, human ratings.
+- **Occupation granularity** is capped at major groups by Spanish public microdata
+  (see caveat above).
+- Crosswalks are many-to-many; aggregation introduces measurement error, mitigated by
+  per-hop coverage diagnostics (printed at runtime).
+- **"Exposure" is technical potential**, not realised adoption or labour demand — an
+  upper bound on disruption, not a forecast.
+- The worker-level wage premium is an association, not a causal estimate.
+
+---
 
 ## Author
 
-Daniel Torres González — [github.com/dantor03](https://github.com/dantor03)
+**Daniel Torres González** — Mathematics & Economics double-degree student.
+[github.com/dantor03](https://github.com/dantor03)
+
+*Code released under the MIT License. Datasets remain subject to their providers' terms.*
