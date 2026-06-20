@@ -14,7 +14,7 @@ microdata sources — the labour-force survey (EPA) and the structure-of-earning
 survey (EES) — to ask **who is exposed, and how exposure relates to pay**.
 
 Everything is reproducible: the US benchmark runs from auto-downloaded data, and the
-Spanish analysis runs from two INE microdata files you place in `data/raw/`.
+Spanish analysis runs from two INE microdata files placed in `data/raw/`.
 
 ---
 
