@@ -1,0 +1,25 @@
+# Data — raw microdata and external dumps are not redistributed here.
+# Anyone reproducing the project downloads them via scripts/download_data.py
+data/raw/*
+data/external/*
+data/processed/*
+!data/raw/.gitkeep
+!data/external/.gitkeep
+!data/processed/.gitkeep
+
+# Secrets
+.env
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# OS
+.DS_Store
+
+# Outputs we DO want tracked live in figures/ (keep them small / PNG)
